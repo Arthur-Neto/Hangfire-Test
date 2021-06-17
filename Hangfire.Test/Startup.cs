@@ -14,16 +14,17 @@ namespace Hangfire.Test
 {
     public class Startup
     {
+        public IConfiguration Configuration { get; }
+
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
         }
 
-        public IConfiguration Configuration { get; }
-
         public void ConfigureServices(IServiceCollection services)
         {
             // Add Hangfire services.
+
             services.AddSingleton(new AutomaticRetryAttribute { Attempts = 3, DelaysInSeconds = new int[2] { 60, 120 } }); // Retry Pattern with Circuit Breaker
 
             services.AddHangfire((provider, configuration) => configuration
@@ -72,6 +73,10 @@ namespace Hangfire.Test
                     IndexFormat = "hangfire-process-dlog-{0:yyyy.MM}"
                 })
                 .CreateLogger();
+
+            var options = new BackgroundJobServerOptions { WorkerCount = Environment.ProcessorCount * 5 };
+
+            app.UseHangfireServer(options);
 
             app.UseHangfireDashboard();
 

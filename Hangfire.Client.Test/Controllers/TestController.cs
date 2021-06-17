@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Serilog;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Json;
+using System.Threading.Tasks;
 
 namespace Hangfire.Client.Test.Controllers
 {
@@ -22,21 +24,38 @@ namespace Hangfire.Client.Test.Controllers
         [Route("HelloWorld")]
         public IActionResult HelloWorld()
         {
-            return Ok(_backgroundJobs.Enqueue(() => _serverWebService.PostAsJsonAsync($"{_serverWebService.BaseAddress}{ServerWebServiceEndpoints.HELLO_WORLD}", string.Empty, null, default)));
+            Log.Information("Queueing HelloWorld on Client");
+
+            return Ok(_backgroundJobs.Enqueue(() => QueuePostAsync(ServerWebServiceEndpoints.HELLO_WORLD, null)));
         }
 
         [HttpPost]
         [Route("SortBinaryTreeWData")]
         public IActionResult SortBinaryTreeWData(ListStrings listStrings)
         {
-            return Ok(_backgroundJobs.Enqueue(() => _serverWebService.PostAsJsonAsync($"{_serverWebService.BaseAddress}{ServerWebServiceEndpoints.SORT_BINARY_TREE_W_DATA}", listStrings, null, default)));
+            Log.Information("Queueing SortBinaryTreeWData on Client");
+
+            return Ok(_backgroundJobs.Enqueue(() => QueuePostAsync(ServerWebServiceEndpoints.SORT_BINARY_TREE_W_DATA, listStrings)));
         }
 
         [HttpPost]
         [Route("SortBinaryTree")]
         public IActionResult SortBinaryTree()
         {
-            return Ok(_backgroundJobs.Enqueue(() => _serverWebService.PostAsJsonAsync($"{_serverWebService.BaseAddress}{ServerWebServiceEndpoints.SORT_BINARY_TREE}", TestData.ListStringToSort, null, default)));
+            Log.Information("Queueing SortBinaryTree on Client");
+
+            return Ok(_backgroundJobs.Enqueue(() => QueuePostAsync(ServerWebServiceEndpoints.SORT_BINARY_TREE, TestData.ListStringToSort)));
+        }
+
+        [NonAction]
+        public async Task<HttpResponseMessage> QueuePostAsync(string endpoint, object jsonPayload)
+        {
+            Log.Information("Executing QueuePostAsync in {Endpoint} and {Payload}", endpoint, jsonPayload);
+
+            using var response = await _serverWebService.PostAsJsonAsync($"{_serverWebService.BaseAddress}{endpoint}", jsonPayload, null, default);
+            response.EnsureSuccessStatusCode();
+
+            return response;
         }
     }
 

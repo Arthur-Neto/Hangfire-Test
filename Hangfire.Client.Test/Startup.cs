@@ -5,20 +5,22 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
+using Serilog;
+using Serilog.Formatting.Elasticsearch;
+using Serilog.Sinks.Elasticsearch;
 using System;
 
 namespace Hangfire.Client.Test
 {
     public class Startup
     {
+        public IConfiguration Configuration { get; }
+
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
         }
 
-        public IConfiguration Configuration { get; }
-
-        // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
             // Add Hangfire services.
@@ -41,6 +43,9 @@ namespace Hangfire.Client.Test
             // Add the processing server as IHostedService
             services.AddHangfireServer();
 
+            services.AddLogging(loggingBuilder =>
+                loggingBuilder.AddSerilog(dispose: true));
+
             services.AddHttpClient(WebServices.SERVER_WEB_SERVICE, c => c.BaseAddress = new Uri(Configuration.GetValue<string>("WebServices:Processing")));
 
             services.AddControllers();
@@ -59,6 +64,21 @@ namespace Hangfire.Client.Test
                 app.UseSwagger();
                 app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Hangfire.Client.Test v1"));
             }
+
+            Log.Logger = new LoggerConfiguration()
+                .Enrich.FromLogContext()
+                .WriteTo.File(new ElasticsearchJsonFormatter(), @"logs\log.json", rollingInterval: RollingInterval.Day)
+                .WriteTo.Elasticsearch(new ElasticsearchSinkOptions(new Uri("http://localhost:9200"))
+                {
+                    AutoRegisterTemplate = true,
+                    AutoRegisterTemplateVersion = AutoRegisterTemplateVersion.ESv7,
+                    IndexFormat = "hangfire-client-{0:yyyy.MM}"
+                })
+                .CreateLogger();
+
+            var options = new BackgroundJobServerOptions { WorkerCount = Environment.ProcessorCount * 5 };
+
+            app.UseHangfireServer(options);
 
             app.UseHangfireDashboard();
 

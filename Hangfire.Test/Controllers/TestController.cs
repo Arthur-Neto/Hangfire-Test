@@ -20,23 +20,51 @@ namespace Hangfire.Test.Controllers
         [Route("HelloWorld")]
         public IActionResult HelloWorld()
         {
-            return Ok(_backgroundJobs.Enqueue(() => Console.WriteLine("Hello world from Hangfire!")));
+            Log.Information("Queueing HelloWorld");
+
+            return Ok(_backgroundJobs.Enqueue(() => HelloWorldQueue()));
+        }
+
+        [NonAction]
+        public void HelloWorldQueue()
+        {
+            Log.Information("Executing HelloWorld");
+
+            Console.WriteLine("Hello world from Hangfire!");
         }
 
         [HttpPost]
         [Route("SortBinaryTreeWData")]
         public IActionResult SortBinaryTreeWData(ListStrings listStrings)
         {
-            Log.Information("Sorting binary tree with values {ListStrings}", listStrings.List);
+            Log.Information("Queueing SortBinaryTreeWData");
 
-            return Ok(_backgroundJobs.Enqueue(() => Testes.SortBinaryTree(listStrings.List)));
+            return Ok(_backgroundJobs.Enqueue(() => SortBinaryTreeWDataQueue(listStrings)));
+        }
+
+        [NonAction]
+        public IEnumerable<string> SortBinaryTreeWDataQueue(ListStrings listStrings)
+        {
+            Log.Information("Executing SortBinaryTreeWData with {ListString}", listStrings);
+
+            return Testes.SortBinaryTree(listStrings.List);
         }
 
         [HttpPost]
         [Route("SortBinaryTree")]
         public IActionResult SortBinaryTree()
         {
-            return Ok(_backgroundJobs.Enqueue(() => Testes.SortBinaryTree()));
+            Log.Information("Queueing SortBinaryTree");
+
+            return Ok(_backgroundJobs.Enqueue(() => SortBinaryTreeQueue()));
+        }
+
+        [NonAction]
+        public IEnumerable<string> SortBinaryTreeQueue()
+        {
+            Log.Information("Executing SortBinaryTree with pregenerated data");
+
+            return Testes.SortBinaryTree();
         }
     }
 
@@ -54,6 +82,8 @@ namespace Hangfire.Test.Controllers
 
         public static IEnumerable<string> SortBinaryTree()
         {
+            Log.Information("Sorting binary tree with values {ListStrings}", TestData.ListStringToSort);
+
             return new SortedSet<string>(TestData.ListStringToSort);
         }
     }
