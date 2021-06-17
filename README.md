@@ -1,3 +1,3 @@
 # Hangfire-Test
 
-Simple test using one Hangfire instance to receive Http calls and another to send
+The idea is to simulate two webservices communication by sending messages with Retry Pattern and Circuit Breaker
